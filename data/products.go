@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"time"
 )
@@ -32,10 +33,53 @@ func (p *Products) ToJSON(w io.Writer) error {
 	return e.Encode(p)
 }
 
+func (p *Product) FromJSON(r io.Reader) error {
+    e := json.NewDecoder(r)
+    return e.Decode(p)
+}
+
 // GetProducts returns a list of products
 func GetProducts() Products {
 	return productList
 }
+
+func AddProduct(p *Product) {
+    p.ID = getNextId()
+    productList = append(productList, p)
+}
+
+func UpdateProduct(id int, existingProd *Product) error {
+    for i, prod := range productList {
+        if prod.ID == id {
+            // Update the product details
+            productList[i].Name = existingProd.Name
+            productList[i].Description = existingProd.Description
+            productList[i].Price = existingProd.Price
+            productList[i].SKU = existingProd.SKU
+            // Optionally update the UpdatedOn field if you're tracking updates
+            productList[i].UpdatedOn = time.Now().UTC().String()
+
+            return nil
+        }
+    }
+    return fmt.Errorf("Product with ID %d not found", id)
+}
+
+func getNextId() int {
+    lp := productList[len(productList) - 1]
+    lp.ID++
+    return lp.ID
+}
+
+func GetProductByID(id int) (*Product, error) {
+    for _, prod := range productList {
+        if prod.ID == id {
+            return prod, nil
+        }
+    }
+    return nil, fmt.Errorf("Product with ID %d not found", id)
+}
+
 
 // productList is a hard coded list of products for this
 // example data source
