@@ -51,12 +51,10 @@ func AddProduct(p *Product) {
 func UpdateProduct(id int, existingProd *Product) error {
     for i, prod := range productList {
         if prod.ID == id {
-            // Update the product details
             productList[i].Name = existingProd.Name
             productList[i].Description = existingProd.Description
             productList[i].Price = existingProd.Price
             productList[i].SKU = existingProd.SKU
-            // Optionally update the UpdatedOn field if you're tracking updates
             productList[i].UpdatedOn = time.Now().UTC().String()
 
             return nil

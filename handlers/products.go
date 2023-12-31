@@ -58,23 +58,6 @@ func (p *Products) addProduct(rw http.ResponseWriter, r *http.Request) {
 }
 
 
-// func extractIDFromURL(r *http.Request, l *log.Logger) (int, error) {
-//     parts := strings.Split(r.URL.Path, "/")
-//     l.Printf("URL Parts: %#v\n", parts)
-
-//     if len(parts) < 3 {
-//         return 0, fmt.Errorf("invalid URL path")
-//     }
-
-//     id, err := strconv.Atoi(parts[2])
-//     if err != nil {
-//         l.Printf("Error converting ID: %v\n", err)
-//         return 0, fmt.Errorf("invalid ID")
-//     }
-
-//     return id, nil
-// }
-
 func extractIDFromURL(r *http.Request) (int, error) {
     parts := strings.Split(r.URL.Path, "/")
     if len(parts) < 3 {
@@ -83,28 +66,6 @@ func extractIDFromURL(r *http.Request) (int, error) {
     return strconv.Atoi(parts[2]) // Assuming the ID is the third part of the URL
 }
 
-
-// func (p *Products) updateProduct(rw http.ResponseWriter, r *http.Request) {
-//     p.l.Println("hereeee")
-//     // Extract the product ID from the URL
-//     id, err := extractIDFromURL(r)
-//     p.l.Println("here", id)
-//     if err != nil {
-//         http.Error(rw, "Invalid URL", http.StatusBadRequest)
-//         return
-//     }
-
-//     // Deserialize the incoming JSON payload into a Product struct
-//     prod := &data.Product{}
-//     err = prod.FromJSON(r.Body)
-//     if err != nil {
-//         http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
-//         return
-//     }
-
-//     // Update the product
-//     data.UpdateProduct(id, prod)
-// }
 
 func (p *Products) updateProduct(rw http.ResponseWriter, r *http.Request) {
     p.l.Println("Update product request received")
