@@ -48,13 +48,24 @@ func AddProduct(p *Product) {
     productList = append(productList, p)
 }
 
-func UpdateProduct(id int, existingProd *Product) error {
+func UpdateProduct(id int, updatedProd *Product) error {
     for i, prod := range productList {
         if prod.ID == id {
-            productList[i].Name = existingProd.Name
-            productList[i].Description = existingProd.Description
-            productList[i].Price = existingProd.Price
-            productList[i].SKU = existingProd.SKU
+            // Only update fields that are non-zero in the updated product
+            if updatedProd.Name != "" {
+                productList[i].Name = updatedProd.Name
+            }
+            if updatedProd.Description != "" {
+                productList[i].Description = updatedProd.Description
+            }
+            if updatedProd.Price != 0 {
+                productList[i].Price = updatedProd.Price
+            }
+            if updatedProd.SKU != "" {
+                productList[i].SKU = updatedProd.SKU
+            }
+
+            // Update the UpdatedOn field
             productList[i].UpdatedOn = time.Now().UTC().String()
 
             return nil
@@ -62,6 +73,7 @@ func UpdateProduct(id int, existingProd *Product) error {
     }
     return fmt.Errorf("Product with ID %d not found", id)
 }
+
 
 func getNextId() int {
     lp := productList[len(productList) - 1]
@@ -101,3 +113,5 @@ var productList = []*Product{
         UpdatedOn:   time.Now().UTC().String(),
     },
 }
+
+
