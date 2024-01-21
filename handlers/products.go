@@ -2,8 +2,7 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -34,22 +33,9 @@ func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
     }
 }
 
-
-// func (p *Products) AddProduct(rw http.ResponseWriter, r *http.Request) {
-//     product := &data.Product{}
-
-//     p.l.Println("======", product, "=========")
-
-//     err := product.FromJSON(r.Body)
-//     if err != nil {
-//         http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
-//     }
-
-//     data.AddProduct(product)
-// }
-
 func (p *Products) AddProduct(rw http.ResponseWriter, r *http.Request) {
     prod, ok := r.Context().Value(KeyProduct{}).(*data.Product)
+    p.l.Println("prod", prod)
     if !ok || prod == nil {
         http.Error(rw, "Invalid product data", http.StatusBadRequest)
         return
@@ -57,69 +43,65 @@ func (p *Products) AddProduct(rw http.ResponseWriter, r *http.Request) {
 
     p.l.Println("Adding product:", prod)
 
-    // Proceed with adding the product
     data.AddProduct(prod)
-
-    // Respond with success or added product information
 }
 
 
 
-
 func (p *Products) UpdateProduct(rw http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r);
-
-    id, err := strconv.Atoi(vars["id"]);
+    vars := mux.Vars(r)
+    id, err := strconv.Atoi(vars["id"])
     if err != nil {
-        http.Error(rw, "unable to convert id", http.StatusBadRequest)
+        http.Error(rw, "Unable to convert id", http.StatusBadRequest)
         return
     }
 
-
-    // Fetch the existing product
     prod := r.Context().Value(KeyProduct{}).(*data.Product)
-
-
-    p.l.Println("prod", prod)
+    if prod == nil {
+        http.Error(rw, "Invalid product data", http.StatusBadRequest)
+        return
+    }
 
     err = data.UpdateProduct(id, prod)
     if err != nil {
         http.Error(rw, "Product not found", http.StatusNotFound)
         return
     }
-
-    if err != nil {
-        http.Error(rw, "Product not found", http.StatusNotFound)
-        return
-    }
 }
+
 
 
 type KeyProduct struct{}
 
-
 func (p Products) MiddlewareProductsValidation(next http.Handler) http.Handler {
     return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-        // Read and parse the body here only once
-        body, err := ioutil.ReadAll(r.Body)
+        prod := data.Product{}
+
+        // Error handling for product deserialization
+        err := prod.FromJSON(r.Body)
         if err != nil {
-            http.Error(rw, "Error reading request body", http.StatusBadRequest)
+            p.l.Println("error deserializing", err)
+            http.Error(rw, "error reading product", http.StatusBadRequest)
             return
         }
 
-        prod := &data.Product{}
-        err = json.Unmarshal(body, prod)
+        // Error handling for product validation
+        err = prod.Validate()
         if err != nil {
-            http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
-            return 
+            p.l.Println("error validating product", err)
+            http.Error(rw, fmt.Sprintf("error validating product: %v", err), http.StatusBadGateway)
+            return
         }
 
+        // Adding the product to the context
         ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
-        req := r.WithContext(ctx)
+        r = r.WithContext(ctx)
 
-        next.ServeHTTP(rw, req)
+        // Proceed to the next handler
+        next.ServeHTTP(rw, r)
     })
 }
+
 
 
 

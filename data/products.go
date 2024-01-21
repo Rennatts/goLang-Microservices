@@ -4,22 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 // Product defines the structure for an API product
 type Product struct {
 	ID          int     `json:"id"`
-	Name        string  `json:"name"`
+	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
-	Price       float32 `json:"price"`
-	SKU         string  `json:"sku"`
+	Price       float32 `json:"price" validate:"gt=0"`
+	SKU         string  `json:"sku" validate:"required,sku"`
 	CreatedOn   string  `json:"-"`
 	UpdatedOn   string  `json:"-"`
 	DeletedOn   string  `json:"-"`
 }
 
-// Products is a collection of Product
 type Products []*Product
 
 // ToJSON serializes the contents of the collection to JSON
@@ -38,7 +40,21 @@ func (p *Product) FromJSON(r io.Reader) error {
     return e.Decode(p)
 }
 
-// GetProducts returns a list of products
+func (p *Product) Validate() error {
+    validate := validator.New()
+    validate.RegisterValidation("sku", validateSKU)
+
+    return validate.Struct(p)
+}
+
+var skuRegex = regexp.MustCompile(`[a-z]+-[a-z]+-[a-z]+`)
+
+func validateSKU(fl validator.FieldLevel) bool {
+    sku := fl.Field().String()
+    matches := skuRegex.FindAllString(sku, -1)
+    return len(matches) == 1 && sku != "invalid"
+}
+
 func GetProducts() Products {
 	return productList
 }
@@ -48,10 +64,37 @@ func AddProduct(p *Product) {
     productList = append(productList, p)
 }
 
+// func UpdateProduct(id int, updatedProd *Product) error {
+//     for i, prod := range productList {
+//         if prod.ID == id {
+//             // Only update fields that are non-zero in the updated product
+//             if updatedProd.Name != "" {
+//                 productList[i].Name = updatedProd.Name
+//             }
+//             if updatedProd.Description != "" {
+//                 productList[i].Description = updatedProd.Description
+//             }
+//             if updatedProd.Price != 0 {
+//                 productList[i].Price = updatedProd.Price
+//             }
+//             if updatedProd.SKU != "" {
+//                 productList[i].SKU = updatedProd.SKU
+//             }
+
+//             // Update the UpdatedOn field
+//             productList[i].UpdatedOn = time.Now().UTC().String()
+
+//             return nil
+//         }
+//     }
+//     return fmt.Errorf("Product with ID %d not found", id)
+// }
+
+
 func UpdateProduct(id int, updatedProd *Product) error {
     for i, prod := range productList {
         if prod.ID == id {
-            // Only update fields that are non-zero in the updated product
+            // Check each field and update if not zero value
             if updatedProd.Name != "" {
                 productList[i].Name = updatedProd.Name
             }
@@ -64,15 +107,13 @@ func UpdateProduct(id int, updatedProd *Product) error {
             if updatedProd.SKU != "" {
                 productList[i].SKU = updatedProd.SKU
             }
-
-            // Update the UpdatedOn field
             productList[i].UpdatedOn = time.Now().UTC().String()
-
             return nil
         }
     }
     return fmt.Errorf("Product with ID %d not found", id)
 }
+
 
 
 func getNextId() int {
